@@ -24,32 +24,34 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public Reservation reserveSpot(Integer userId, Integer parkingLotId, Integer timeInHours, Integer numberOfWheels) throws Exception {
 
-
-       User  user = userRepository3.findById(userId).get();
-       ParkingLot parkingLot = parkingLotRepository3.findById(parkingLotId).get();
-
-       List<Spot> spotList = parkingLot.getSpotList();
-
-        if(user == null || parkingLot == null || spotList == null)
-        {
-            throw  new Exception("Cannot make reservation");
+        if(!userRepository3.findById(userId).isPresent() || !parkingLotRepository3.findById(parkingLotId).isPresent()) {
+            throw new Exception("Cannot make reservation");
         }
 
-      SpotType requiredSpotType;
-        if(numberOfWheels == 2)
-        {
-            requiredSpotType = SpotType.TWO_WHEELER;
-        }
-        else if(numberOfWheels == 4)
-        {
-            requiredSpotType = SpotType.FOUR_WHEELER;
-        }
-        else {
-            requiredSpotType = SpotType.OTHERS;
-        }
-        Spot selectedSpot = null;
+        User user = userRepository3.findById(userId).get();
+        ParkingLot parkingLot = parkingLotRepository3.findById(parkingLotId).get();
+
+
+//        Getting the spot list from parkingLot
+        List<Spot> spotList = parkingLot.getSpotList();
+        if(spotList.size() == 0) throw new Exception("Cannot make reservation");
+
+
+        SpotType requiredSpotType;
+
+//        Getting required spot type
+        if(numberOfWheels > 4) requiredSpotType = SpotType.OTHERS;
+        else if (numberOfWheels > 2 ) requiredSpotType = SpotType.TWO_WHEELER;
+        else requiredSpotType = SpotType.TWO_WHEELER;
+
         int minPrice = Integer.MAX_VALUE;
-            for (Spot spot : spotList) {
+        Spot selectedSpot = null;
+
+//        Finding the spot which satisfy the condition
+//        1. total price should be minimum
+//        2. Vehicle can be spot in equal and greater type
+
+        for (Spot spot : spotList) {
             if (!spot.getOccupied()) {
                 if(spot.getSpotType() == SpotType.OTHERS) {
                     int parkingPrice = spot.getPricePerHour()*timeInHours;
@@ -77,23 +79,15 @@ public class ReservationServiceImpl implements ReservationService {
 
         if(selectedSpot == null) throw new Exception("Cannot make reservation");
 
+        Reservation reservation = new Reservation(timeInHours, selectedSpot,user);
+        selectedSpot.setOccupied(Boolean.TRUE);
+        selectedSpot.getReservationList().add(reservation);
+        user.getReservationList().add(reservation);
 
+        userRepository3.save(user);
+        spotRepository3.save(selectedSpot);
 
-
-
-       Reservation reservation = new Reservation(timeInHours,selectedSpot,user);
-//       reservation.setNumberOfHours(timeInHours);
-//       reservation.setSpot(spot);
-//       reservation.setUser(user);
-        selectedSpot.setOccupied(true);
-
-       selectedSpot.getReservationList().add(reservation);
-       user.getReservationList().add(reservation);
-
-       spotRepository3.save(selectedSpot);
-       userRepository3.save(user);
-
-       return null;
+        return reservation;
 
     }
 }
