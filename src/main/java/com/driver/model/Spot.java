@@ -30,6 +30,12 @@ public class Spot {
 
     public Spot(){}
 
+    public Spot(int PricePerHour)
+    {
+        this.PricePerHour = PricePerHour;
+        this.Occupied = false;
+    }
+
     public Spot(int id, com.driver.model.SpotType spotType, int pricePerHour, boolean occupied, ParkingLot parkingLot, List<Reservation> reservationList) {
         this.id = id;
         SpotType = spotType;

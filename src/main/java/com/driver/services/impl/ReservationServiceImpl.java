@@ -28,65 +28,73 @@ public class ReservationServiceImpl implements ReservationService {
        User  user = userRepository3.findById(userId).get();
        ParkingLot parkingLot = parkingLotRepository3.findById(parkingLotId).get();
 
-       Spot spot = null;
-       int amount = Integer.MAX_VALUE;
-
        List<Spot> availablespots = parkingLot.getSpotList();
 
-//       StringBuilder str = new StringBuilder();
-//        //TWO_WHEELER, FOUR_WHEELER, OTHERS
-//        int wheels = 0;
-//       if(numberOfWheels == 2)
-//       {
-//           String s = "TWO_WHEELER";
-//           wheels = 2;
-//           str.append(s);
-//       }
-//       else if(numberOfWheels == 4)
-//       {
-//           String s = "FOUR_WHEELER";
-//           wheels = 4;
-//           str.append(s);
-//       }
-//       else {
-//           String s = "OTHERS";
-//           wheels = 5;
-//           str.append(s);
-//       }
-//       String spottype = str.substring(0,str.length());
+        if(user == null || parkingLot == null || availablespots == null)
+        {
+            throw  new Exception("Cannot make reservation");
+        }
+
+      SpotType requiredSpotType;
+        if(numberOfWheels == 2)
+        {
+            requiredSpotType = SpotType.TWO_WHEELER;
+        }
+        else if(numberOfWheels == 4)
+        {
+            requiredSpotType = SpotType.FOUR_WHEELER;
+        }
+        else {
+            requiredSpotType = SpotType.OTHERS;
+        }
+        Spot spot = null;
+        int amount = Integer.MAX_VALUE;
+
+        for(Spot s : availablespots)
+        {
+            if(!s.getOccupied() == false)
+            {
+                if(s.getSpotType() == SpotType.OTHERS)
+                {
+                    int price = timeInHours * s.getPricePerHour();
+                    if(price < amount)
+                    {
+                        spot = s;
+                        amount = price;
+                    }
+                }
+                if(s.getSpotType() == SpotType.TWO_WHEELER && numberOfWheels <= 2)
+                {
+                    int price = timeInHours * s.getPricePerHour();
+                    if(price < amount)
+                    {
+                        spot = s;
+                        amount = price;
+                    }
+                }
+                if(s.getSpotType() == SpotType.FOUR_WHEELER && numberOfWheels <= 4)
+                {
+                    int price = timeInHours * s.getPricePerHour();
+                    if(price < amount)
+                    {
+                        spot = s;
+                        amount = price;
+                    }
+                }
+            }
+        }
+
+        if(spot == null) throw new Exception("Cannot make reservation");
 
 
 
-       for(Spot s : availablespots)
-       {
-           int wh = 0;
-           if(s.getSpotType().equals("TWO_WHEELER"))
-           {
-               wh = 2;
-           }
-           else if(s.getSpotType().equals("FOUR_WHEELER"))
-           {
-               wh = 4;
-           }
-           else {
-               wh = Integer.MAX_VALUE;
-           }
 
-           if(s.getPricePerHour() < amount && wh >= numberOfWheels)
-           {
-               spot = s;
-           }
-       }
 
-       if(user == null || parkingLot == null || spot == null)
-       {
-           throw  new Exception("Cannot make reservation");
-       }
-
-       Reservation reservation = new Reservation();
-       reservation.setNumberOfHours(timeInHours);
-       reservation.setSpot(spot);
-       reservation.setUser(user);
+       Reservation reservation = new Reservation(timeInHours,spot,user);
+//       reservation.setNumberOfHours(timeInHours);
+//       reservation.setSpot(spot);
+//       reservation.setUser(user);
+        spot.setOccupied(true);
 
        spot.getReservationList().add(reservation);
        user.getReservationList().add(reservation);
@@ -94,7 +102,7 @@ public class ReservationServiceImpl implements ReservationService {
        spotRepository3.save(spot);
        userRepository3.save(user);
 
-       return reservation;
+       return null;
 
     }
 }
